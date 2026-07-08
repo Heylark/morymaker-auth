@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+    ConsumedRefreshTokenMapper.xml — consumed_refresh_tokens 테이블 (1테이블1파일).
+
+    평면 테이블 (nested collection 없음) → BaseResultMap 직접 매핑.
+    ConsumedRefreshToken은 immutable data class → <constructor> 매핑 사용 (setter 없음).
+    <constructor> 선언 순서 = ConsumedRefreshToken 주 생성자 파라미터 선언 순서와 정확히 일치 필수.
+
+    PK 설계:
+    - DB PK: id (CHAR(36) UUID) — 전 PK UUID 컨벤션.
+    - token_hash: UNIQUE 제약. INSERT IGNORE 중복 탐지 기준.
+    - 도메인 VO ConsumedRefreshToken은 id 필드를 가지지 않는다 (어댑터 생성, 도메인 불필요).
+      SELECT에서 id를 VO 생성자에 넘기지 않고, <idArg column="token_hash">로
+      MyBatis 객체 동등성 캐싱에 사용한다 (token_hash도 UNIQUE라 dedup 기준으로 안전).
+
+    timezone 안전:
+    - fetchByHash: expires_at > #{now} JDBC 파라미터 바인딩 (DB 서버 NOW() 비사용).
+      WHY: MariaDB NOW()는 DB 서버 로컬 시각(DATETIME — timezone 미포함)을 반환하므로,
+           JDBC serverTimezone 미설정 환경에서 JVM Instant 해석 시 timezone 오프셋이
+           발생한다. #{now}는 Java 측 Instant.now(clock)으로 공급 — 항상 UTC 기준이라 안전하다.
+    - insert: consumed_at = #{consumedAt} (기존 그대로 — 동일 원칙 적용됨).
+
+    보안:
+    - 모든 WHERE 조건: #{} PreparedStatement 바인딩 (${} 절대 금지).
+    - tokenHash 값을 로그·에러 메시지에 출력 금지.
+
+    lazy-evict 정책:
+    - fetchByHash: expires_at > #{now} 필터 — 만료 항목을 조회에서 자연 제외.
+    - bulk cleanup 스케줄러 없음(단일 인스턴스 lite 배포 — 위생 정리는 후속 배치로 연기).
+
+    Instant ↔ DATETIME 매핑:
+    - MyBatis Spring Boot Starter가 InstantTypeHandler를 자동 등록해 DATETIME ↔ java.time.Instant를 매핑한다.
+    - javaType="java.time.Instant" 명시.
+
+    ⚠️ generic typeHandler="...EnumTypeHandler" 명시 금지. 본 테이블에 enum 컬럼이 없어 해당 없음.
+-->
+<mapper namespace="kr.co.morymaker.auth.persistence.adapter.persistence.refresh.mapper.ConsumedRefreshTokenMapper">
+
+    <!-- ================================================================
+         ResultMap — consumed_refresh_tokens → ConsumedRefreshToken 직접 매핑
+         ConsumedRefreshToken(tokenHash, authorizationId, consumedAt, expiresAt)
+         <constructor> 순서는 주 생성자 파라미터 선언 순서와 정확히 일치해야 함.
+         consumed_at / expires_at: DATETIME ↔ java.time.Instant (InstantTypeHandler 자동 등록).
+
+         PK(id) vs VO identity:
+         - DB PK는 id이지만 VO에 id 필드가 없다.
+         - <idArg column="token_hash">로 token_hash를 MyBatis 객체 동등성 기준으로 사용.
+           (token_hash는 UNIQUE 제약이라 dedup 기준으로 기능적으로 동등하다.)
+    ================================================================ -->
+    <resultMap id="BaseResultMap" type="kr.co.morymaker.auth.domain.refresh.ConsumedRefreshToken">
+        <constructor>
+            <idArg column="token_hash"       javaType="String"/>
+            <arg   column="authorization_id" javaType="String"/>
+            <arg   column="consumed_at"      javaType="java.time.Instant"/>
+            <arg   column="expires_at"       javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+
+    <!-- ================================================================
+         공통 컬럼 목록 — fetchByHash SELECT에서 사용 (VO 생성자 매핑 대상만).
+         id는 VO 필드가 없으므로 SELECT columns에 포함하지 않는다.
+         id는 INSERT 구문에서만 명시한다.
+    ================================================================ -->
+    <sql id="columns">
+        token_hash
+        , authorization_id
+        , consumed_at
+        , expires_at
+    </sql>
+
+    <!-- ================================================================
+         조회 (lazy-evict: expires_at > #{now} JDBC 바인딩 — timezone 안전)
+    ================================================================ -->
+
+    <!--
+        fetchByHash: token_hash로 소비 기록 단건 조회.
+        만료된 항목(expires_at <= #{now})은 자연 제외 — lazy-evict 정책.
+        #{tokenHash}, #{now} PreparedStatement 바인딩 필수 (${} 직접 치환 금지).
+    -->
+    <select id="fetchByHash" resultMap="BaseResultMap">
+        SELECT
+            <include refid="columns"/>
+        FROM consumed_refresh_tokens
+        WHERE token_hash = #{tokenHash}
+          AND expires_at <![CDATA[ > ]]> #{now}
+    </select>
+
+    <!-- ================================================================
+         저장 (INSERT IGNORE — idempotent)
+    ================================================================ -->
+
+    <!--
+        insert: 소비된 토큰 해시 INSERT IGNORE.
+        INSERT IGNORE: token_hash UNIQUE 제약 중복 시 silent skip.
+        사유: rotation 재-save(idempotent·revoke re-save 경로)에서 동일 hash를 다시 record해도
+             기존 기록을 덮어쓰지 않고 조용히 통과 — consumed_at 기준 grace 창 보존.
+
+        id: #{id} — 어댑터가 UUID.randomUUID().toString()으로 생성하여 전달.
+            DB PK 컨벤션 (UUID CHAR(36)). 도메인 VO에는 id 필드가 없다.
+        consumed_at: #{consumedAt} JDBC 파라미터 바인딩 (Java Instant.now(clock)).
+    -->
+    <insert id="insert">
+        INSERT IGNORE INTO consumed_refresh_tokens (
+            id
+            , authorization_id
+            , token_hash
+            , consumed_at
+            , expires_at
+        ) VALUES (
+            #{id}
+            , #{authorizationId}
+            , #{tokenHash}
+            , #{consumedAt}
+            , #{expiresAt}
+        )
+    </insert>
+
+</mapper>

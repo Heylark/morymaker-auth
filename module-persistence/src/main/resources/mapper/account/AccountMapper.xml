@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+    AccountMapper.xml — account 테이블 (1테이블1파일, RBAC B 단일 테이블 조회 — JOIN·nested collection 없음).
+
+    <constructor> 선언 순서는 Account 주 생성자 파라미터 선언 순서와 정확히 일치해야 한다:
+    (id, email, name, role, status, passwordHash, failedAttempts, lockedAt, lockedUntil, note, createdAt).
+
+    positional index(번호로 컬럼을 꺼내는 방식) 금지 — 컬럼 순서 변경 시 조용히 오매핑되므로 전 컬럼 컬럼명 기반 명시 매핑.
+
+    email 대소문자: utf8mb4_unicode_ci 콜레이션이 대소문자 무시 비교를 DB 레벨에서 보장 —
+    selectByEmail은 별도 LOWER() 변환 없이 WHERE email = #{email} 그대로 사용한다.
+
+    locked_at/locked_until/created_at: DATETIME ↔ java.time.Instant.
+    MyBatis Spring Boot Starter가 InstantTypeHandler를 자동 등록해 매핑한다(consumed_refresh_tokens와 동일 원칙).
+
+    update(잠금 상태 UPDATE)는 계정 생성·프로필 수정 API가 아니다 — 로그인 시도 결과
+    (failed_attempts/locked_at/locked_until)만 반영하는 좁은 용도(AccountPort.save KDoc 참조).
+
+    ⚠️ failed_attempts의 <constructor> javaType은 "int"가 아니라 "_int"여야 한다. MyBatis 기본 별칭
+    표에서 "int"/"integer"는 래퍼 타입(java.lang.Integer)에 매핑되고, 프리미티브는 "_int" 접두사
+    별칭이 맡는다. Account.failedAttempts(Kotlin non-null Int)는 JVM 생성자 시그니처에서 프리미티브
+    int로 컴파일되므로, "int"로 두면 리플렉션 생성자 탐색이 (..., Integer, ...)로 실패한다
+    (NoSuchMethodException — 실제로 재현·수정된 문제, 통합 테스트가 회귀 방지).
+-->
+<mapper namespace="kr.co.morymaker.auth.persistence.adapter.persistence.account.mapper.AccountMapper">
+
+    <resultMap id="BaseResultMap" type="kr.co.morymaker.auth.domain.account.Account">
+        <constructor>
+            <idArg  column="id"              javaType="String"/>
+            <arg    column="email"           javaType="String"/>
+            <arg    column="name"            javaType="String"/>
+            <arg    column="role"            javaType="String"/>
+            <arg    column="status"          javaType="String"/>
+            <arg    column="password_hash"   javaType="String"/>
+            <arg    column="failed_attempts" javaType="_int"/>
+            <arg    column="locked_at"       javaType="java.time.Instant"/>
+            <arg    column="locked_until"    javaType="java.time.Instant"/>
+            <arg    column="note"            javaType="String"/>
+            <arg    column="created_at"      javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="columns">
+        id
+        , email
+        , name
+        , role
+        , status
+        , password_hash
+        , failed_attempts
+        , locked_at
+        , locked_until
+        , note
+        , created_at
+    </sql>
+
+    <select id="selectByEmail" resultMap="BaseResultMap">
+        SELECT
+            <include refid="columns"/>
+        FROM account
+        WHERE email = #{email}
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+            <include refid="columns"/>
+        FROM account
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectRoleById" resultType="String">
+        SELECT role
+        FROM account
+        WHERE id = #{id}
+    </select>
+
+    <!--
+        로그인 시도 결과(잠금 상태 전이)만 반영 — email/role/name 등 프로필 컬럼은 건드리지 않는다.
+    -->
+    <update id="update">
+        UPDATE account
+        SET failed_attempts = #{failedAttempts}
+          , locked_at       = #{lockedAt}
+          , locked_until    = #{lockedUntil}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

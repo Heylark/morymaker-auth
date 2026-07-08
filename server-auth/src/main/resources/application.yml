@@ -4,9 +4,52 @@ server:
 spring:
   application:
     name: morymaker-auth
+  datasource:
+    # infra/docker-compose.yml — 로컬은 13306 외부 포트로 MariaDB 노출.
+    url: jdbc:mariadb://localhost:13306/${DB_NAME:morymaker}
+    username: root
+    password: ${DB_ROOT_PASSWORD:changeme}
+    driver-class-name: org.mariadb.jdbc.Driver
+  flyway:
+    enabled: true
+    # oauth2_authorization V1 COMMENT 문에 ${code} 형태 문자열이 없더라도, 향후 마이그레이션이
+    # placeholder 문법과 충돌하는 리터럴을 포함할 수 있어 선제적으로 비활성화한다.
+    placeholder-replacement: false
+    # api 서비스가 별도 Flyway 이력으로 같은 DB에 마이그레이션을 실행한다 — 기본 이력 테이블명을
+    # 그대로 쓰면 두 서비스의 버전 이력이 뒤섞여 충돌한다. 서비스별 이력 테이블로 분리.
+    table: flyway_schema_history_auth
+    locations: classpath:db/migration
+
+mybatis:
+  mapper-locations: classpath*:mapper/**/*.xml
 
 management:
   endpoints:
     web:
       exposure:
         include: health
+
+morymaker:
+  auth:
+    # OAuth2/OIDC issuer — 발급 토큰의 iss 클레임과 discovery 문서에 노출된다. api·web 양쪽이
+    # 이 값을 신뢰 앵커로 사용하므로 배포 환경마다 실 도메인으로 반드시 오버라이드해야 한다.
+    issuer: ${AUTH_ISSUER:http://localhost:30000}
+    web-client:
+      # 콘솔·실행자·키오스크·방문자 4표면이 공유하는 단일 OIDC 클라이언트(Next.js BFF).
+      client-id: ${AUTH_WEB_CLIENT_ID:morymaker-web}
+      # 평문 그대로 두고 RegisteredClientSeeder가 BCrypt 인코딩 후 저장한다(코드 주석 참조).
+      client-secret: ${AUTH_WEB_CLIENT_SECRET:dev-secret}
+      redirect-uris: ${AUTH_WEB_REDIRECT_URIS:http://localhost:3000/oauth/callback}
+      scopes: ${AUTH_WEB_SCOPES:openid,email}
+    lock-policy:
+      # 로그인 실패 잠금 정책(시간 경과 자동 해제, 수동 해제 UI 없음).
+      # module-application의 AccountService가 이 두 키를 @Value로 직접 읽는다(레이어 방향상
+      # module-application이 server-auth의 AuthProperties를 의존할 수 없어 별도 바인딩 클래스를 두지 않음).
+      max-failed-attempts: ${AUTH_LOCK_MAX_ATTEMPTS:5}
+      lock-duration: ${AUTH_LOCK_DURATION:15m}
+    token-policy:
+      # refresh rotation(reuseRefreshTokens=false, RegisteredClientSeeder 하드코딩) 전제 토큰 수명.
+      # 행사 당일 실행자가 재로그인 없이 종일 운영하는 요구에 맞춘 확정값 —
+      # yulse 원본(access 15분·refresh 60분)은 이 요구를 못 채워 그대로 가져오지 않는다.
+      access-token-ttl: ${AUTH_ACCESS_TOKEN_TTL:30m}
+      refresh-token-ttl: ${AUTH_REFRESH_TOKEN_TTL:24h}
