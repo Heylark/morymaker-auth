@@ -1,0 +1,12 @@
+server:
+  port: 30000
+
+spring:
+  application:
+    name: morymaker-auth
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
