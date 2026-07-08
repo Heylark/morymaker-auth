@@ -1,8 +1,10 @@
 // server-auth/build.gradle.kts
-// boot 앱 — module-application까지만 소비, module-persistence는 미배선 (DB 독립 기동).
-// SAS는 in-memory 모드(RegisteredClientRepository·JWKSource in-memory)로 부트한다 — durable JDBC 저장은 후속 인증 서버 구축 단계로 미룬다.
+// boot 앱 — module-persistence까지 배선(durable JDBC 저장 활성화).
+// module-persistence가 api(project(":module-application"))로 선언돼 있어 application·domain 전이도 함께 확보된다.
+// 이 배선으로 spring-boot-starter-jdbc·MyBatis·Flyway·MariaDB 드라이버가 boot classpath에 진입해
+// DataSource autoconfig가 발동한다 — 로컬 기동 시 MariaDB 선행 필요.
 dependencies {
-    implementation(project(":module-application"))
+    implementation(project(":module-persistence"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security")

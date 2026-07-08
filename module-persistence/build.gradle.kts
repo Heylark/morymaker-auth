@@ -1,7 +1,7 @@
 // module-persistence/build.gradle.kts
 // JPA 전면 배제 — MyBatis 단독. plugin.jpa·kapt·querydsl-*·data-jpa 모두 미포함.
 // spring-boot-starter-jdbc 포함 — SAS Jdbc* 저장소(JdbcRegisteredClientRepository 등)가 JdbcOperations를 요구하기 때문.
-// 이 모듈은 컴파일만 되고 boot(server-auth)에는 아직 배선하지 않는다 — 실 durable 저장 배선은 후속 인증 서버 구축 단계에서 이 모듈을 boot에 추가하며 활성화한다.
+// server-auth가 이 모듈을 boot classpath에 배선해 durable 저장이 활성화된다.
 dependencies {
     api(project(":module-application"))
 

@@ -8,7 +8,8 @@ class AuthApplicationTests {
 
     @Test
     fun `Spring 컨텍스트가 정상 로드된다`() {
-        // in-memory SAS(RegisteredClientRepository·JWKSource) + module-persistence 미배선(DB 독립 기동) 상태에서
-        // 컨텍스트 로드 자체가 성공하는지 검증.
+        // durable JDBC 배선(module-persistence boot 배선) 이후 상태 — DataSource autoconfig가 발동하므로
+        // 이 테스트는 로컬 MariaDB(infra/docker-compose.yml)가 기동돼 있어야 통과한다.
+        // Flyway 마이그레이션 적용 + RegisteredClientSeeder 실행까지 포함해 컨텍스트 로드 성공 여부를 검증한다.
     }
 }
