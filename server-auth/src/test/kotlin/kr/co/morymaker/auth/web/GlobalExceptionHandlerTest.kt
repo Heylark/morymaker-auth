@@ -9,7 +9,7 @@ import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 
 /**
- * [GlobalExceptionHandler] 단위 테스트 — E7 에러코드 매핑(§0-5)이 예외 타입별로 정확한 HTTP
+ * [GlobalExceptionHandler] 단위 테스트 — 에러코드 매핑(§0-5)이 예외 타입별로 정확한 HTTP
  * status·code 로 변환되는지 확인한다. Spring 컨텍스트 없이 핸들러 메서드를 직접 호출한다.
  */
 class GlobalExceptionHandlerTest {

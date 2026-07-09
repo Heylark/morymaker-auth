@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * 계정 어드민 CRUD API(§3) — auth 최초의 `@RestController`. 인가는 이 클래스가 아니라
  * [kr.co.morymaker.auth.config.AdminApiSecurityConfig]의 요청 레벨 `hasRole(SYSTEM_ADMIN)` 게이트가
- * 담당한다(E3 — 4개 엔드포인트가 균일 SYSTEM_ADMIN이라 메서드 시큐리티 2중 강제는 배제).
+ * 담당한다(4개 엔드포인트가 균일 SYSTEM_ADMIN이라 메서드 시큐리티 2중 강제는 배제).
  */
 @RestController
 @RequestMapping("/api/accounts")

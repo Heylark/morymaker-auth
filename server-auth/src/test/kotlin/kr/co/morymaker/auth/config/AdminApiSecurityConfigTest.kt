@@ -7,9 +7,9 @@ import org.springframework.security.oauth2.jwt.Jwt
 import java.time.Instant
 
 /**
- * [AdminApiSecurityConfig] 단위 테스트 — E3의 가장 load-bearing한 부분(roles→ROLE_ 컨버터)을
+ * [AdminApiSecurityConfig] 단위 테스트 — 인가 체인에서 가장 load-bearing한 부분(roles→ROLE_ 컨버터)을
  * Spring 컨텍스트 없이 직접 검증한다. 이 변환이 누락되면 `hasRole` 판정이 전부 실패해 SYSTEM_ADMIN도
- * 403을 받는다(02-architect §7 명시 리스크).
+ * 403을 받는 리스크를 방어한다.
  */
 class AdminApiSecurityConfigTest {
 

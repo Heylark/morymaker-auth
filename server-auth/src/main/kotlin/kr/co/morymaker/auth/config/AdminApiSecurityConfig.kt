@@ -19,7 +19,7 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.access.AccessDeniedHandler
 
 /**
- * §3 어드민 REST 인가 체인(E3 확정 — JWT Resource Server) — `/api/accounts` 하위 전체 경로 전용, `@Order(2)`
+ * §3 어드민 REST 인가 체인(JWT Resource Server 방식) — `/api/accounts` 하위 전체 경로 전용, `@Order(2)`
  * (`@Order(1)` AS 프로토콜 체인과 `@Order(5)` 폼 로그인 catch-all 사이). [SecurityConfig] 미접촉
  * (동결 경계 — 신규 클래스로 분리).
  *

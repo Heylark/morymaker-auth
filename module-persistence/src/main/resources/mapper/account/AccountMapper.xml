@@ -78,7 +78,7 @@
 
     <!--
         목록(§3-1) role/status/q 필터. q는 email·name 부분일치(LIKE) — RBAC B 소규모 테이블이라
-        별도 인덱스 없이 순차 스캔으로 충분하다(과잉 인덱스 회피, 02-architect §2 DB 건전성 판단 정합).
+        별도 인덱스 없이 순차 스캔으로 충분하다(소규모 테이블이라 과잉 인덱스 회피).
     -->
     <sql id="searchCondition">
         <where>

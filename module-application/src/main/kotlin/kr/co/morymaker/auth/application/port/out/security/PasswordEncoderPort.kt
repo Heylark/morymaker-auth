@@ -1,7 +1,7 @@
 package kr.co.morymaker.auth.application.port.out.security
 
 /**
- * 비밀번호 인코딩 port-out — §3-2 초기 비밀번호 발급(E2 관리자 지정 방식)이 이 포트를 통해 해시를
+ * 비밀번호 인코딩 port-out — §3-2 초기 비밀번호 발급(관리자 지정 방식)이 이 포트를 통해 해시를
  * 만든다.
  *
  * module-application은 spring-security-crypto를 직접 의존하지 않는다([EventScopePort] 패턴

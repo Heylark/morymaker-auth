@@ -18,7 +18,7 @@ import org.springframework.web.servlet.NoHandlerFoundException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 
 /**
- * §3 어드민 REST의 공통 에러 응답 변환(E7 — api Event/Guest 어드민 패턴의 auth 자체 사본, 별도
+ * §3 어드민 REST의 공통 에러 응답 변환(api Event/Guest 어드민 패턴의 auth 자체 사본, 별도
  * repo라 공유 불가). 401 UNAUTHENTICATED·403 ROLE_FORBIDDEN은 여기 도달하지 않는다 — 필터 레벨
  * [kr.co.morymaker.auth.config.AdminApiSecurityConfig]의 인증/인가 핸들러가 먼저 처리한다.
  */
