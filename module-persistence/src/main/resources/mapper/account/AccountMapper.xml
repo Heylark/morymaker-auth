@@ -77,6 +77,81 @@
     </select>
 
     <!--
+        목록(§3-1) role/status/q 필터. q는 email·name 부분일치(LIKE) — RBAC B 소규모 테이블이라
+        별도 인덱스 없이 순차 스캔으로 충분하다(과잉 인덱스 회피, 02-architect §2 DB 건전성 판단 정합).
+    -->
+    <sql id="searchCondition">
+        <where>
+            <if test="role != null and role != ''">
+                AND role = #{role}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="q != null and q != ''">
+                AND (email LIKE CONCAT('%', #{q}, '%') OR name LIKE CONCAT('%', #{q}, '%'))
+            </if>
+        </where>
+    </sql>
+
+    <!--
+        목록 조회(§3-1) — account는 단일 테이블이라 mybatis.md의 searchPaging 서브쿼리 패턴(cartesian
+        product 방지용 id 선추출)은 불요하다. LIMIT/OFFSET을 이 쿼리에 직접 적용한다.
+    -->
+    <select id="search" resultMap="BaseResultMap">
+        SELECT
+            <include refid="columns"/>
+        FROM account
+        <include refid="searchCondition"/>
+        ORDER BY created_at DESC
+        <if test="paging">
+            LIMIT #{size} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!--
+        전체 건수(§3-1) — 호출자(AccountAdminService)가 paging=false로 복사해 넘겨야 정확한 건수가
+        나온다(paging=true인 채로 호출하면 LIMIT 이후 건수만 새는 버그 — mybatis.md 경고 정합).
+    -->
+    <select id="searchTotalCnt" resultType="int">
+        SELECT COUNT(*)
+        FROM account
+        <include refid="searchCondition"/>
+    </select>
+
+    <!--
+        계정 신규 생성(§3-2). email UNIQUE(uk_account_email) 위반 시 MyBatis-Spring이
+        DuplicateKeyException으로 번역한다 — 서비스 pre-check(409)와 함께 2중 방어.
+    -->
+    <insert id="insert">
+        INSERT INTO account
+        ( id
+        , email
+        , name
+        , role
+        , status
+        , password_hash
+        , failed_attempts
+        , locked_at
+        , locked_until
+        , note
+        , created_at
+        ) VALUES
+        ( #{id,             jdbcType=VARCHAR}
+        , #{email,          jdbcType=VARCHAR}
+        , #{name,           jdbcType=VARCHAR}
+        , #{role,           jdbcType=VARCHAR}
+        , #{status,         jdbcType=VARCHAR}
+        , #{passwordHash,   jdbcType=VARCHAR}
+        , #{failedAttempts, jdbcType=INTEGER}
+        , #{lockedAt,       jdbcType=TIMESTAMP}
+        , #{lockedUntil,    jdbcType=TIMESTAMP}
+        , #{note,           jdbcType=VARCHAR}
+        , #{createdAt,      jdbcType=TIMESTAMP}
+        )
+    </insert>
+
+    <!--
         로그인 시도 결과(잠금 상태 전이)만 반영 — email/role/name 등 프로필 컬럼은 건드리지 않는다.
     -->
     <update id="update">
@@ -85,6 +160,22 @@
           , locked_at       = #{lockedAt}
           , locked_until    = #{lockedUntil}
         WHERE id = #{id}
+    </update>
+
+    <!-- 프로필 갱신(§3-3) — 이름·역할·메모만. email·password·잠금 필드는 이 쿼리가 건드리지 않는다. -->
+    <update id="updateProfile">
+        UPDATE account
+        SET  name = #{name, jdbcType=VARCHAR}
+           , role = #{role, jdbcType=VARCHAR}
+           , note = #{note, jdbcType=VARCHAR}
+        WHERE id = #{id, jdbcType=VARCHAR}
+    </update>
+
+    <!-- 상태 토글(§3-4) — 활성/비활성. -->
+    <update id="updateStatus">
+        UPDATE account
+        SET status = #{status, jdbcType=VARCHAR}
+        WHERE id = #{id, jdbcType=VARCHAR}
     </update>
 
 </mapper>

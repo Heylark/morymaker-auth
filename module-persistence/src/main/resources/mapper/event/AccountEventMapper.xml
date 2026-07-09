@@ -10,10 +10,38 @@
 -->
 <mapper namespace="kr.co.morymaker.auth.persistence.adapter.persistence.event.mapper.AccountEventMapper">
 
+    <resultMap id="RowResultMap" type="kr.co.morymaker.auth.persistence.adapter.persistence.event.mapper.AccountEventRow">
+        <result column="account_id" property="accountId"/>
+        <result column="event_id"   property="eventId"/>
+    </resultMap>
+
     <select id="findEventIds" resultType="String">
         SELECT event_id
         FROM account_event
         WHERE account_id = #{accountId}
     </select>
+
+    <!-- 목록 응답 조립용 배치 조회(§3-1) — N+1 회피. accountId 기준 그룹핑은 어댑터 책임. -->
+    <select id="findEventIdsByAccountIds" resultMap="RowResultMap">
+        SELECT account_id
+             , event_id
+        FROM account_event
+        WHERE account_id IN
+        <foreach collection="accountIds" item="accountId" open="(" separator="," close=")">
+            #{accountId}
+        </foreach>
+    </select>
+
+    <!-- 행사할당 전량 삭제(delete-insert 재작성의 delete 절반, §3-2/§3-3) — 원자성은 호출자 @Transactional. -->
+    <delete id="deleteByAccountId">
+        DELETE FROM account_event
+        WHERE account_id = #{accountId}
+    </delete>
+
+    <!-- 행사할당 1건 등록(delete-insert 재작성의 insert 절반). -->
+    <insert id="insert">
+        INSERT INTO account_event (account_id, event_id)
+        VALUES (#{accountId}, #{eventId})
+    </insert>
 
 </mapper>
