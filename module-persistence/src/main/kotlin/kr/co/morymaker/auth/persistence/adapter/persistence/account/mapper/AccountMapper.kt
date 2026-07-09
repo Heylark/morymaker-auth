@@ -1,5 +1,6 @@
 package kr.co.morymaker.auth.persistence.adapter.persistence.account.mapper
 
+import kr.co.morymaker.auth.application.port.out.account.AccountSearch
 import kr.co.morymaker.auth.domain.account.Account
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
@@ -43,4 +44,24 @@ interface AccountMapper {
         @Param("lockedAt") lockedAt: Instant?,
         @Param("lockedUntil") lockedUntil: Instant?,
     ): Int
+
+    /** 계정 신규 생성(§3-2) — email UNIQUE 위반 시 MyBatis-Spring이 DuplicateKeyException으로 번역한다. */
+    fun insert(account: Account): Int
+
+    /** 프로필 갱신(§3-3) — 이름·역할·메모만. email/password/잠금 필드는 이 쿼리가 건드리지 않는다. */
+    fun updateProfile(
+        @Param("id") id: String,
+        @Param("name") name: String?,
+        @Param("role") role: String,
+        @Param("note") note: String?,
+    ): Int
+
+    /** 상태 토글(§3-4). */
+    fun updateStatus(@Param("id") id: String, @Param("status") status: String): Int
+
+    /** 목록 조회(§3-1) — role/status/q 필터 + 페이징(단일 테이블, searchPaging 서브쿼리 불요). */
+    fun search(search: AccountSearch): List<Account>
+
+    /** 전체 건수(§3-1) — 호출자가 `search.paging=false`로 넘겨야 한다. */
+    fun searchTotalCnt(search: AccountSearch): Int
 }

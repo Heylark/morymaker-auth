@@ -1,6 +1,7 @@
 package kr.co.morymaker.auth.persistence.adapter.persistence.account
 
 import kr.co.morymaker.auth.application.port.out.account.AccountPort
+import kr.co.morymaker.auth.application.port.out.account.AccountSearch
 import kr.co.morymaker.auth.domain.account.Account
 import kr.co.morymaker.auth.persistence.adapter.persistence.account.mapper.AccountMapper
 import org.springframework.stereotype.Component
@@ -33,4 +34,25 @@ internal class AccountPersistenceAdapter(
             lockedUntil = account.lockedUntil,
         )
     }
+
+    /** 계정 신규 생성(§3-2) — email UNIQUE 위반 시 durable 저장소가 DuplicateKeyException을 던진다. */
+    override fun insert(account: Account) {
+        accountMapper.insert(account)
+    }
+
+    /** 프로필 갱신(§3-3) — 이름·역할·메모만. email·password·잠금 필드는 건드리지 않는다. */
+    override fun updateProfile(id: String, name: String?, role: String, note: String?) {
+        accountMapper.updateProfile(id = id, name = name, role = role, note = note)
+    }
+
+    /** 상태 토글(§3-4). */
+    override fun updateStatus(id: String, status: String) {
+        accountMapper.updateStatus(id = id, status = status)
+    }
+
+    /** 목록 조회(§3-1) — role/status/q 필터 + 페이징. */
+    override fun search(search: AccountSearch): List<Account> = accountMapper.search(search)
+
+    /** 전체 건수(§3-1) — 호출자가 `search.paging=false`로 넘겨야 정확한 전체 건수가 나온다. */
+    override fun count(search: AccountSearch): Int = accountMapper.searchTotalCnt(search)
 }
