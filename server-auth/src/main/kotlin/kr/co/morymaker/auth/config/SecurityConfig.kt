@@ -20,8 +20,8 @@ import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher
  * (`applyDefaultSecurity` 명시 호출로 동일 동작을 재현). `AuthorizationServerConfig`의 durable JDBC
  * 빈(등록 클라이언트·인가·동의 저장소·JWT decoder)은 그대로 자동 배선되어 사용된다.
  *
- * 계정 도메인(로그인 사용자 조회)은 아직 이 저장소에 없다 — `@Order(5)` 체인은 폼 로그인의 골격만
- * 갖추고, 실 계정 조회에 연결된 인증 제공자는 계정 도메인이 들어오는 시점에 배선된다.
+ * 계정 조회·인증(`CustomUserDetailsService`·`BcryptPasswordEncoderAdapter`)은 이미 배선되어
+ * 있으며, `@Order(5)` 체인은 모리메이커 브랜딩 커스텀 로그인 페이지(`/login`)로 폼 로그인을 처리한다.
  */
 @Configuration
 class SecurityConfig {
@@ -69,17 +69,18 @@ class SecurityConfig {
     }
 
     /**
-     * `@Order(5)` — 폼 로그인 catch-all 체인. `/login`(Spring Security 기본 생성 페이지)·헬스체크·
+     * `@Order(5)` — 폼 로그인 catch-all 체인. `/login`(모리메이커 브랜딩 커스텀 로그인 페이지)·헬스체크·
      * discovery permitAll + 나머지 인증 필요.
      *
-     * ## WHY — 커스텀 로그인 페이지를 지정하지 않는다
-     * 계정 도메인(로그인 사용자 조회 서비스)이 아직 이 배포에 없다 — 커스텀 `loginPage("/login")`을
-     * 지정하면 `DefaultLoginPageGeneratingFilter`가 제거되어 별도 로그인 컨트롤러·템플릿 없이는
-     * `GET /login`이 404가 된다. 계정 도메인이 들어오는 시점에 커스텀 로그인 페이지·인증 제공자로 교체한다.
+     * ## WHY — 커스텀 로그인 페이지 사용
+     * `loginPage("/login")`을 지정하면 `DefaultLoginPageGeneratingFilter`(Spring 기본 폼)가 제거되고,
+     * 그 자리를 이 저장소의 로그인 뷰 컨트롤러(`web/LoginController`)와 템플릿(`templates/login.html`)이
+     * 대체한다 — `GET /login`이 브랜딩 페이지를 렌더한다. success/failure handler·처리 URL·파라미터명은
+     * 기본값을 그대로 유지해 로그인 성공 후 OIDC authorize 재개 동작을 보존한다.
      *
      * ## WHY — CSRF 활성 유지
-     * 전역 CSRF 면제를 추가하지 않는다(silent loosening 금지 원칙). Spring Security 기본 로그인 폼은
-     * same-origin이라 `_csrf` 히든 필드를 자동 포함하므로 폼 로그인은 정상 동작한다.
+     * 전역 CSRF 면제를 추가하지 않는다(silent loosening 금지 원칙). 커스텀 로그인 폼(`_csrf` 히든 필드
+     * 포함)은 same-origin이라 CSRF 토큰을 정상적으로 포함하므로 폼 로그인은 정상 동작한다.
      */
     @Bean
     @Order(5)
@@ -88,7 +89,7 @@ class SecurityConfig {
             .authorizeHttpRequests { authorize ->
                 authorize
                     .requestMatchers(
-                        "/login", // Spring Security 기본 로그인 폼(GET) + 처리(POST)
+                        "/login", // 브랜딩 커스텀 로그인 페이지(GET) + 처리(POST)
                         "/error", // Spring Boot Whitelabel 에러 페이지
                         "/.well-known/**", // OIDC discovery
                         "/actuator/health", // 헬스체크 무인증 200(항상 permitAll 불변 원칙)
@@ -96,7 +97,7 @@ class SecurityConfig {
                     ).permitAll()
                     .anyRequest().authenticated()
             }
-            .formLogin { }
+            .formLogin { it.loginPage("/login").permitAll() }
         return http.build()
     }
 }
