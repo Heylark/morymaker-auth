@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>모리메이커 · 의전 운영 콘솔</title>
+  <style>
+    :root{
+      --ink:#14181F; --ink-raised:#1C222C; --ivory:#F3EEE4;
+      --brass:#C6A15B; --brass-soft:#7E6836; --muted:#8B93A0; --rose:#D98A7A;
+      --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+      --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0; min-height:100vh; font-family:var(--sans); color:var(--ivory);
+      background:
+        radial-gradient(120% 90% at 50% -10%, #1A2030 0%, var(--ink) 60%);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .card{
+      width:100%; max-width:400px; background:var(--ink-raised);
+      border:1px solid rgba(126,104,54,.35); border-radius:14px;
+      padding:40px 34px 30px; position:relative; overflow:hidden;
+      box-shadow:0 24px 60px -30px rgba(0,0,0,.8);
+      animation:rise .4s ease both;
+    }
+    /* 상단 금박 meridian 밴드 — 시그니처 */
+    .card::before{
+      content:""; position:absolute; top:0; left:0; right:0; height:2px;
+      background:linear-gradient(90deg,transparent,var(--brass) 20%,var(--brass) 80%,transparent);
+    }
+    @keyframes rise{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+    .brand{text-align:center; margin-bottom:26px;}
+    .seal{width:46px; height:46px; margin:0 auto 14px; display:block;}
+    .wordmark{
+      font-family:var(--serif); font-size:24px; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--ivory); margin:0 0 6px;
+    }
+    .subtitle{font-size:12px; letter-spacing:.28em; color:var(--muted); text-transform:none;}
+    /* 상태 스트립 */
+    .notice{
+      font-size:13px; padding:10px 12px; border-radius:8px; margin-bottom:20px;
+      border:1px solid transparent;
+    }
+    .notice--error{color:var(--rose); border-color:rgba(217,138,122,.4); background:rgba(217,138,122,.07);}
+    .notice--info{color:var(--muted); border-color:rgba(139,147,160,.3); background:rgba(139,147,160,.06);}
+    .field{margin-bottom:18px;}
+    label{
+      display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:7px;
+    }
+    input{
+      width:100%; background:transparent; border:0; border-bottom:1.5px solid var(--brass-soft);
+      color:var(--ivory); font-size:15px; padding:8px 2px; font-family:var(--sans);
+      transition:border-color .2s;
+    }
+    input:focus{outline:none; border-bottom-color:var(--brass);}
+    input:focus-visible{box-shadow:0 2px 0 -1px var(--brass);}
+    button{
+      width:100%; margin-top:10px; padding:13px; border:0; border-radius:8px;
+      background:var(--brass); color:var(--ink); font-size:14px; font-weight:600;
+      letter-spacing:.12em; cursor:pointer; font-family:var(--sans);
+      transition:transform .12s, background .2s;
+    }
+    button:hover{background:#D2B172; transform:translateY(-1px);}
+    button:focus-visible{outline:2px solid var(--ivory); outline-offset:2px;}
+    .foot{margin-top:22px; text-align:center; font-size:11px; letter-spacing:.06em; color:var(--brass-soft);}
+    @media (max-width:420px){ .card{padding:32px 22px 26px;} .wordmark{font-size:21px;} }
+    @media (prefers-reduced-motion:reduce){ .card{animation:none;} button,input{transition:none;} }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <!-- 모노그램 왁스씰(시그니처) — 인라인 SVG(외부 요청 0). 실 로고 확보 시 교체 -->
+      <svg class="seal" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <circle cx="24" cy="24" r="22" stroke="#C6A15B" stroke-width="1.3"/>
+        <circle cx="24" cy="24" r="17" stroke="#7E6836" stroke-width=".8"/>
+        <text x="24" y="31" text-anchor="middle" font-family="Georgia,serif"
+              font-size="20" fill="#C6A15B" letter-spacing="0">M</text>
+      </svg>
+      <h1 class="wordmark">Morymaker</h1>
+      <p class="subtitle">의전 운영 콘솔</p>
+    </div>
+
+    <!-- 인증 실패: 사용자 열거 방지 위해 원인 미노출(이메일/비밀번호 어느 쪽인지 특정 안 함) -->
+    <div class="notice notice--error" role="alert" th:if="${param.error != null}">
+      이메일 또는 비밀번호가 올바르지 않습니다.
+    </div>
+    <!-- 로그아웃 완료 -->
+    <div class="notice notice--info" th:if="${param.logout != null}">
+      로그아웃되었습니다.
+    </div>
+
+    <!-- th:action이 CSRF 히든 필드 자동 주입.
+         (명시 fallback: <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>) -->
+    <form method="post" th:action="@{/login}">
+      <div class="field">
+        <label for="username">이메일</label>
+        <input id="username" name="username" type="email"
+               autocomplete="username" autofocus required>
+      </div>
+      <div class="field">
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" type="password"
+               autocomplete="current-password" required>
+      </div>
+      <button type="submit">로그인</button>
+    </form>
+
+    <p class="foot">모리메이커 의전 운영 · 관계자 전용</p>
+  </main>
+</body>
+</html>

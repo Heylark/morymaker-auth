@@ -10,6 +10,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-thymeleaf") // 브랜딩 로그인 페이지 렌더(CSRF 토큰 서버 주입 필수 — 정적 HTML 불가)
     // §3 어드민 REST DTO(@field:NotBlank/@field:Email) 런타임 검증 — 이 검증기 없으면 @Valid가 조용히 무시된다.
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
