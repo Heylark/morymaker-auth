@@ -43,4 +43,40 @@ class LoginControllerTest {
             .andExpect(content().string(containsString("name=\"username\"")))
             .andExpect(content().string(containsString("name=\"password\"")))
     }
+
+    @Test
+    fun `GET login 응답 본문에 모리메이커 브랜딩 마커가 포함되고 Spring 기본 로그인 폼 마커는 없다`() {
+        mockMvc.perform(get("/login"))
+            .andExpect(status().isOk)
+            .andExpect(content().string(containsString("Morymaker")))
+            .andExpect(content().string(containsString("의전 운영 콘솔")))
+            // Spring Boot DefaultLoginPageGeneratingFilter가 생성하는 기본 폼의 고유 문구 —
+            // loginPage("/login") 전환 후에도 남아있다면 커스텀 컨트롤러/템플릿이 실제로
+            // 그 필터를 대체하지 못했다는 뜻이다.
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Please sign in"))))
+    }
+
+    @Test
+    fun `GET login error 파라미터 시 오류 알림이 렌더되고 logout 알림은 렌더되지 않는다`() {
+        mockMvc.perform(get("/login").param("error", ""))
+            .andExpect(status().isOk)
+            .andExpect(content().string(containsString("이메일 또는 비밀번호가 올바르지 않습니다")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("로그아웃되었습니다"))))
+    }
+
+    @Test
+    fun `GET login logout 파라미터 시 로그아웃 알림이 렌더되고 오류 알림은 렌더되지 않는다`() {
+        mockMvc.perform(get("/login").param("logout", ""))
+            .andExpect(status().isOk)
+            .andExpect(content().string(containsString("로그아웃되었습니다")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("이메일 또는 비밀번호가 올바르지 않습니다"))))
+    }
+
+    @Test
+    fun `GET login 파라미터 없이 요청하면 오류·로그아웃 알림 모두 렌더되지 않는다`() {
+        mockMvc.perform(get("/login"))
+            .andExpect(status().isOk)
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("이메일 또는 비밀번호가 올바르지 않습니다"))))
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("로그아웃되었습니다"))))
+    }
 }
