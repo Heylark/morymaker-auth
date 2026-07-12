@@ -3,6 +3,7 @@ package kr.co.morymaker.auth.config
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
+import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -95,6 +96,7 @@ class SecurityConfig {
                         "/actuator/health", // 헬스체크 무인증 200(항상 permitAll 불변 원칙)
                         "/favicon.ico",
                     ).permitAll()
+                    .requestMatchers(HttpMethod.GET, "/fonts/**").permitAll() // 로그인 페이지 웹폰트 정적 자산 — 조회 전용 공개(GET 한정)
                     .anyRequest().authenticated()
             }
             .formLogin { it.loginPage("/login").permitAll() }
