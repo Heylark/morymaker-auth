@@ -30,11 +30,11 @@
       --line:rgba(212,179,106,.28); /* 금선 hairline — 카드 프레임 */
       --radius-frame:4px; --radius-sharp:2px;
       --serif:"Bodoni Moda","Bodoni 72",Didot,"Times New Roman",serif;
-      --sans:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+      --sans-lat:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
     }
     *{box-sizing:border-box;}
     body{
-      margin:0; min-height:100vh; font-family:var(--sans); color:var(--ivory);
+      margin:0; min-height:100vh; font-family:var(--sans-lat); color:var(--ivory);
       background:
         radial-gradient(120% 90% at 50% -10%, var(--surface) 0%, var(--void) 60%);
       display:flex; align-items:center; justify-content:center; padding:24px;
@@ -76,7 +76,7 @@
     }
     input{
       width:100%; background:transparent; border:0; border-bottom:1.5px solid var(--champagne-lo);
-      color:var(--ivory); font-size:15px; padding:8px 2px; font-family:var(--sans);
+      color:var(--ivory); font-size:15px; padding:8px 2px; font-family:var(--sans-lat);
       transition:border-color .2s;
     }
     input:focus{outline:none; border-bottom-color:var(--champagne);}
@@ -84,7 +84,7 @@
     button{
       width:100%; margin-top:10px; padding:13px; border:0; border-radius:var(--radius-sharp);
       background:var(--champagne); color:var(--btn-ink); font-size:14px; font-weight:600;
-      letter-spacing:.12em; cursor:pointer; font-family:var(--sans);
+      letter-spacing:.12em; cursor:pointer; font-family:var(--sans-lat);
       transition:transform .12s, background .2s;
     }
     button:hover{background:var(--champagne-hi); transform:translateY(-1px);}
