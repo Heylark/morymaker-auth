@@ -182,3 +182,6 @@ local.properties
 
 # Claude Code 로컬 설정
 .claude/
+
+# 워크트리 docs 심볼릭 링크 (DOCS_PATH — 컨테이너 공유 docs, git 추적 대상 아님)
+/docs
