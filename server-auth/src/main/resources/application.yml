@@ -39,7 +39,7 @@ morymaker:
       client-id: ${AUTH_WEB_CLIENT_ID:morymaker-web}
       # 평문 그대로 두고 RegisteredClientSeeder가 BCrypt 인코딩 후 저장한다(코드 주석 참조).
       client-secret: ${AUTH_WEB_CLIENT_SECRET:dev-secret}
-      redirect-uris: ${AUTH_WEB_REDIRECT_URIS:http://localhost:3000/oauth/callback}
+      redirect-uris: ${AUTH_WEB_REDIRECT_URIS:http://localhost:3000/app/oauth/callback}
       scopes: ${AUTH_WEB_SCOPES:openid,email}
     lock-policy:
       # 로그인 실패 잠금 정책(시간 경과 자동 해제, 수동 해제 UI 없음).
