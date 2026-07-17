@@ -1,0 +1,26 @@
+# auth/.dockerignore — 빌드 컨텍스트에서 산출물·비밀·호스트 전용 경로를 제외한다.
+# ⚠️ .gitignore 감각을 그대로 옮기지 말 것 — 디렉터리명만 적으면 최상위 경로만 잡히고
+#    중첩 경로(server-auth/build 등)는 안 잡힌다. 전부 **/ 로 명시한다.
+# ⚠️ *.jar 를 재귀 배제하지 말 것 — gradle/wrapper/gradle-wrapper.jar 가 빠지면
+#    ./gradlew 자체가 동작하지 않아 빌더 스테이지가 전멸한다.
+
+# 빌드 산출물 — 각 모듈(server-auth/build, module-*/build)이 중첩 경로라 build/ 만으로는 안 잡힌다.
+**/build/
+
+# 프로젝트 로컬 Gradle 캐시(사용자 홈 ~/.gradle 과 별개) — 빌드 컨텍스트 대부분을 차지한다.
+**/.gradle/
+
+# macOS 절대 JDK 경로(/Library/Java/...)를 고정한 gitignored 파일. 빌더는 Linux 컨테이너라
+# 이 파일이 컨텍스트에 들어가면 존재하지 않는 경로를 찾다 빌드가 조용히 깨진다. 최우선 배제.
+**/gradle.properties
+
+# 워크트리 루트의 심볼릭 링크 — 컨테이너 밖 호스트 절대경로를 가리킨다.
+**/docs
+**/tasks
+
+# 워크트리에선 디렉터리가 아니라 gitdir 포인터 파일(호스트 절대경로 문자열)이다.
+**/.git
+
+# 실값 유출 경로. .env.example 은 실값이 없어 무해하지만 같이 배제해도 무방하다.
+**/.env
+**/.env.*
