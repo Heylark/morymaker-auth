@@ -67,8 +67,12 @@ EXPOSE 30000
 
 # health 는 DB 가용성을 집계에 포함한다(DataSourceHealthIndicator) — 앱 기동은 빨라도 DB 준비가
 # 늦으면 그 사이 DOWN 이 뜬다. --start-period 없이 붙이면 컨테이너가 뜨자마자 unhealthy 로
-# 낙인찍힌다. 경로는 /actuator/health — auth는 servlet context-path 가 루트라 /api 접두가
-# 없다(api Dockerfile을 그대로 복붙하면 /api/actuator/health 로 영구 404가 난다).
+# 낙인찍힌다. 경로는 /actuator/health — auth는 servlet context-path 가 루트라 /api 접두가 없다.
+# ⚠️ api Dockerfile을 그대로 복붙해 /api/actuator/health 로 두면 시끄럽게 404 로 죽지 않는다 —
+#    Spring Security 가 미인증 요청을 핸들러 없음(404) 판정 이전에 가로채 /login 으로 302 리다이렉트하고,
+#    curl -f 는 3xx 를 실패로 보지 않아 exit 0 을 낸다(실측 확인). 결과는 헬스 엔드포인트를 한 번도
+#    확인하지 못한 채 컨테이너가 "healthy" 로 조용히 오판되는 것이다 — 틀린 경로는 시끄럽게가 아니라
+#    조용히 실패하므로 이 경로를 정확히 유지해야 한다.
 HEALTHCHECK --start-period=30s --interval=10s --timeout=3s --retries=3 \
   CMD curl -f http://localhost:30000/actuator/health || exit 1
 
