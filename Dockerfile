@@ -60,7 +60,7 @@ COPY --from=builder --chown=morymaker:morymaker /app/app.jar /app/app.jar
 
 USER morymaker
 
-EXPOSE 30000
+EXPOSE 50100
 # AJP 미노출 대상 자체가 없다 — auth는 전용 서브도메인(mm-accounts) 루트 프록시로만 붙는다.
 # context-path·AJP 커넥터가 코드에 없으므로(00-research 실측) Ghostcat 하드닝·AJP_SECRET
 # 주입 로직 자체를 배제했다(api 대비 누락이 아니라 auth 표면에 대상이 없다는 뜻).
@@ -74,7 +74,7 @@ EXPOSE 30000
 #    확인하지 못한 채 컨테이너가 "healthy" 로 조용히 오판되는 것이다 — 틀린 경로는 시끄럽게가 아니라
 #    조용히 실패하므로 이 경로를 정확히 유지해야 한다.
 HEALTHCHECK --start-period=30s --interval=10s --timeout=3s --retries=3 \
-  CMD curl -f http://localhost:30000/actuator/health || exit 1
+  CMD curl -f http://localhost:50100/actuator/health || exit 1
 
 # exec form — java 가 PID 1 로 SIGTERM 을 직접 받는다(shell form 이면 sh 가 PID 1 이 되어
 # graceful shutdown 이 깨진다). 프로필·시크릿은 이미지에 굽지 않는다 — 전부 런타임 env 로만
