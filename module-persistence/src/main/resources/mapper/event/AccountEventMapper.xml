@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+    AccountEventMapper.xml — account_event 테이블(순수 매핑, 복합 PK). event 스코프 조회 전용 단일 쿼리만
+    갖는다 — 등록·해제 CRUD는 이 REQ 범위 밖(후속 REQ의 관리자 콘솔 API 몫).
+
+    event_id는 api 소유 event 테이블을 참조하지만 물리 FK가 없다(교차 소유 FK 회피 — auth·api가
+    각자 Flyway를 돌리는 공유 DB). auth 쪽에서는 이 값을 불투명한 CHAR(36) 문자열로만 다룬다.
+-->
+<mapper namespace="kr.co.morymaker.auth.persistence.adapter.persistence.event.mapper.AccountEventMapper">
+
+    <resultMap id="RowResultMap" type="kr.co.morymaker.auth.persistence.adapter.persistence.event.mapper.AccountEventRow">
+        <result column="account_id" property="accountId"/>
+        <result column="event_id"   property="eventId"/>
+    </resultMap>
+
+    <select id="findEventIds" resultType="String">
+        SELECT event_id
+        FROM account_event
+        WHERE account_id = #{accountId}
+    </select>
+
+    <!-- 목록 응답 조립용 배치 조회(§3-1) — N+1 회피. accountId 기준 그룹핑은 어댑터 책임. -->
+    <select id="findEventIdsByAccountIds" resultMap="RowResultMap">
+        SELECT account_id
+             , event_id
+        FROM account_event
+        WHERE account_id IN
+        <foreach collection="accountIds" item="accountId" open="(" separator="," close=")">
+            #{accountId}
+        </foreach>
+    </select>
+
+    <!-- 행사할당 전량 삭제(delete-insert 재작성의 delete 절반, §3-2/§3-3) — 원자성은 호출자 @Transactional. -->
+    <delete id="deleteByAccountId">
+        DELETE FROM account_event
+        WHERE account_id = #{accountId}
+    </delete>
+
+    <!-- 행사할당 1건 등록(delete-insert 재작성의 insert 절반). -->
+    <insert id="insert">
+        INSERT INTO account_event (account_id, event_id)
+        VALUES (#{accountId}, #{eventId})
+    </insert>
+
+</mapper>
