@@ -1,5 +1,8 @@
 server:
   port: 30000
+  # 프록시 X-Forwarded-Proto/-Port 헤더로 원본 scheme을 복원한다(env 부재에도 동작 — belt-and-suspenders).
+  # 진짜 fix는 vhost의 헤더 주입이고, 이 필터는 그 헤더를 실제로 반영하는 쪽이다.
+  forward-headers-strategy: framework
 
 spring:
   application:
