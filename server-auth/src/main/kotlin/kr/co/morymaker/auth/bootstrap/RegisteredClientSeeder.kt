@@ -52,6 +52,7 @@ class RegisteredClientSeeder(
 
         val redirectUris = splitCsv(webClient.redirectUris)
         val scopes = splitCsv(webClient.scopes)
+        val postLogoutRedirectUris = splitCsv(webClient.postLogoutRedirectUris)
 
         val builder = RegisteredClient.withId(id)
             .clientId(webClient.clientId)
@@ -82,6 +83,7 @@ class RegisteredClientSeeder(
                     .build(),
             )
         redirectUris.forEach { builder.redirectUri(it) }
+        postLogoutRedirectUris.forEach { builder.postLogoutRedirectUri(it) }
         scopes.forEach { builder.scope(it) }
 
         registeredClientRepository.save(builder.build())
@@ -90,6 +92,31 @@ class RegisteredClientSeeder(
         } else {
             log.info("web client reconciled (config-authoritative): clientId={}", webClient.clientId)
         }
+
+        // post-logout 등록 좌표를 기동 로그에 남긴다 — 이 값이 비면 로그아웃만 조용히 400이 되므로
+        // (설정 오류가 부팅 로그 어디에도 안 남는 유일한 항목), 배포 직후 로그 한 줄로 확인 가능하게 한다.
+        if (postLogoutRedirectUris.isEmpty()) {
+            log.warn("post-logout redirect URI 미등록 — 로그아웃 요청이 거부된다(설정 확인 필요)")
+        } else {
+            log.info(
+                "post-logout redirect URIs registered: clientId={}, postLogoutRedirectUris={}",
+                webClient.clientId,
+                postLogoutRedirectUris,
+            )
+        }
+
+        // 비정규 형태 경고 — 로그아웃 검증은 byte-exact 문자열 비교라, 경로 이중 슬래시나 끝 슬래시가
+        // 하나만 붙어도 요청 전체가 거부된다. 등록은 "성공"으로 보이고 실패는 사용자가 로그아웃을 누를
+        // 때까지 드러나지 않으므로, 부팅 시점에 형태만이라도 시끄럽게 만든다(기동을 막지는 않는다 —
+        // 로그아웃 좌표 오타로 로그인까지 포함한 서비스 전체를 세우는 것은 스테이징에서 손해가 더 크다).
+        postLogoutRedirectUris
+            .filter { it.endsWith("/") || it.substringAfter("://").contains("//") }
+            .forEach {
+                log.warn(
+                    "post-logout redirect URI 형태 비정규(끝 슬래시 또는 경로 이중 슬래시) — 로그아웃이 거부될 수 있다: {}",
+                    it,
+                )
+            }
     }
 
     private fun splitCsv(value: String): List<String> =
