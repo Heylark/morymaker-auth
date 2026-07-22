@@ -25,7 +25,9 @@ import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher
  * 있으며, `@Order(5)` 체인은 모리메이커 브랜딩 커스텀 로그인 페이지(`/login`)로 폼 로그인을 처리한다.
  */
 @Configuration
-class SecurityConfig {
+class SecurityConfig(
+    private val authProperties: AuthProperties,
+) {
 
     /**
      * `@Order(1)` — SAS 프로토콜 체인 (`/oauth2/` 하위, `/.well-known/openid-configuration`, JWKS 등).
@@ -82,6 +84,13 @@ class SecurityConfig {
      * ## WHY — CSRF 활성 유지
      * 전역 CSRF 면제를 추가하지 않는다(silent loosening 금지 원칙). 커스텀 로그인 폼(`_csrf` 히든 필드
      * 포함)은 same-origin이라 CSRF 토큰을 정상적으로 포함하므로 폼 로그인은 정상 동작한다.
+     *
+     * ## WHY — `defaultSuccessUrl(url, alwaysUse=false)`
+     * 즐겨찾기 등으로 `/login`에 직접 진입(OIDC authorize 왕복 없음)해 로그인하면 SavedRequest가 없어
+     * 기본 successHandler가 `/`로 보내고, `/`는 다시 `/login`으로 돌아가 폼이 재노출된다. 웹 콘솔 URL을
+     * 기본 착지로 지정해 이 재노출을 막는다. `alwaysUse=false`가 핵심 계약이다 — SavedRequest(OIDC
+     * authorize 재개)가 있으면 그쪽이 여전히 우선한다. `true`로 바꾸면 로그인 후 항상 이 URL로 가버려
+     * 기존 OIDC 왕복이 끊긴다.
      */
     @Bean
     @Order(5)
@@ -99,7 +108,10 @@ class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/fonts/**").permitAll() // 로그인 페이지 웹폰트 정적 자산 — 조회 전용 공개(GET 한정)
                     .anyRequest().authenticated()
             }
-            .formLogin { it.loginPage("/login").permitAll() }
+            .formLogin {
+                it.loginPage("/login").permitAll()
+                    .defaultSuccessUrl(authProperties.webClient.successLandingUrl, false)
+            }
         return http.build()
     }
 }
