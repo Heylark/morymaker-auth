@@ -29,6 +29,10 @@ data class AuthProperties(
         val clientSecret: String,
         val redirectUris: String,
         val scopes: String,
+        /** SavedRequest 부재 폼 로그인의 기본 착지(웹 콘솔). 하드코딩 금지 — 배포마다 실 도메인. */
+        val successLandingUrl: String,
+        /** RP-initiated logout 착지 좌표(csv). 등록값과 요청값은 byte-exact 일치해야 한다. */
+        val postLogoutRedirectUris: String,
     )
 
     /**

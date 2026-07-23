@@ -44,6 +44,12 @@ morymaker:
       client-secret: ${AUTH_WEB_CLIENT_SECRET:dev-secret}
       redirect-uris: ${AUTH_WEB_REDIRECT_URIS:http://localhost:3000/app/oauth/callback}
       scopes: ${AUTH_WEB_SCOPES:openid,email}
+      # 직접 /login 진입(OIDC 왕복 없음)으로 로그인했을 때의 착지. SavedRequest가 있으면 그쪽이 우선한다.
+      success-landing-url: ${AUTH_SUCCESS_LANDING_URL:http://localhost:3000/app}
+      # 로그아웃 후 브라우저가 돌아올 좌표. web이 보내는 문자열과 한 글자도 달라선 안 된다(다르면 로그아웃 자체가 거부됨).
+      # 로컬 기본값에 e2e 포트(3100)를 함께 둔다 — redirect-uris(단일 기본값) 관례와 비대칭이나, 이 값은
+      # 착지 좌표일 뿐 인가 코드·토큰이 실리지 않아 보안 무게가 달라 E2E 편의를 우선한다.
+      post-logout-redirect-uris: ${AUTH_WEB_POST_LOGOUT_REDIRECT_URIS:http://localhost:3000/app/logged-out,http://localhost:3100/app/logged-out}
     lock-policy:
       # 로그인 실패 잠금 정책(시간 경과 자동 해제, 수동 해제 UI 없음).
       # module-application의 AccountService가 이 두 키를 @Value로 직접 읽는다(레이어 방향상
